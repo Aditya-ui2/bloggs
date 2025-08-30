@@ -65,11 +65,15 @@ def add_blog(
 ):
     if "user" not in request.session:
         return RedirectResponse("/login", status_code=303)
+    
     user = db.query(models.User).filter(models.User.username == request.session["user"]).first()
+    if not user:
+        return RedirectResponse("/signup?error=Please signup first", status_code=303)
 
     new_blog = models.Blog(title=title, content=content, user_id=user.id)
     db.add(new_blog)
     db.commit()
+
     return RedirectResponse("/", status_code=303)
 
 @app.post("/delete/{blog_id}")
@@ -105,6 +109,9 @@ def blog_detail(request:Request,blog_id:int,db:Session=Depends(get_db)):
 
 @app.post("/signup")
 def signup(username:str=Form(...),password:str=Form(...),db:Session=Depends(get_db)):
+    existing_user = db.query(models.User).filter(models.User.username == username).first()
+    if existing_user:
+        return RedirectResponse("/login", status_code=303)
     hashed_pw = hash_password(password)
     user = models.User(username=username,password=hashed_pw)
     db.add(user)
